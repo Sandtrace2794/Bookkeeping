@@ -1,0 +1,19 @@
+# OS
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# 編輯器
+.vscode/
+.idea/
+*.swp
+
+# Node（tools/make-icons.mjs 若裝了依賴）
+node_modules/
+
+# Claude Code 本機設定（launch.json 保留）
+.claude/settings.local.json
+
+# 匯出的備份檔不要進版控
+bookkeeping*.json
+*.csv

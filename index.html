@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#5aa9e6">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="記帳本">
+<title>記帳本</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div id="app" class="app">
+
+  <!-- ============ 總覽 ============ -->
+  <section class="view" id="view-home" data-view="home">
+    <header class="hero">
+      <div class="hero-row">
+        <div>
+          <div class="hero-label">本月支出</div>
+          <div class="hero-amount" id="heroSpent">--</div>
+        </div>
+        <button class="chip-btn" id="btnMonthPickHome"><span id="heroMonth">--</span> ▾</button>
+      </div>
+      <div class="budget">
+        <div class="budget-bar"><div class="budget-fill" id="budgetFill"></div></div>
+        <div class="budget-text"><span id="budgetText">尚未設定預算</span></div>
+      </div>
+      <div class="stat-strip">
+        <div class="stat"><span class="stat-ico">💵</span><b id="statIn">0</b><small>收入</small></div>
+        <div class="stat"><span class="stat-ico">⚖️</span><b id="statNet">0</b><small>損益</small></div>
+        <div class="stat"><span class="stat-ico">📅</span><b id="statAvg">0</b><small>日均支出</small></div>
+        <div class="stat"><span class="stat-ico">🔥</span><b id="statStreak">0</b><small>連續記帳</small></div>
+      </div>
+    </header>
+
+    <!-- 權杖一小時就過期，所以連結／同步放在最容易按到的地方 -->
+    <button class="sync-card" id="homeSyncCard">
+      <span class="sync-ico" id="homeSyncIco">☁️</span>
+      <span class="sync-card-body">
+        <span class="sync-card-title" id="homeSyncTitle">雲端同步</span>
+        <span class="muted small" id="homeSyncSub">尚未設定</span>
+      </span>
+      <span class="btn btn-primary" id="homeSyncAction">設定</span>
+    </button>
+
+    <div class="card">
+      <div class="card-head"><h3>快速記帳</h3><span class="muted small">常用類別</span></div>
+      <div class="quick" id="quickCats"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>今日</h3><span class="muted" id="todayTotal"></span></div>
+      <div id="todayList" class="rec-list"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>本月支出排行</h3><button class="text-btn" data-go="stats">看統計 ›</button></div>
+      <div id="homeRank" class="rank-list"></div>
+    </div>
+    <div class="pad-bottom"></div>
+  </section>
+
+  <!-- ============ 明細 ============ -->
+  <section class="view" id="view-list" data-view="list" hidden>
+    <header class="topbar">
+      <button class="chip-btn" id="btnMonthPickList"><span id="listMonth">--</span> ▾</button>
+      <div class="spacer"></div>
+      <button class="icon-btn" id="btnSearch" title="搜尋">🔍</button>
+    </header>
+    <div class="search-row" id="searchRow" hidden>
+      <input type="search" id="searchInput" placeholder="搜尋備註或類別…" autocomplete="off">
+      <button class="text-btn" id="btnSearchClear">清除</button>
+    </div>
+    <div class="sum-row">
+      <div class="sum sum-out"><small>支出</small><b id="listOut">0</b></div>
+      <div class="sum sum-in"><small>收入</small><b id="listIn">0</b></div>
+      <div class="sum sum-net"><small>損益</small><b id="listNet">0</b></div>
+    </div>
+    <div id="listBody" class="rec-groups"></div>
+    <div class="pad-bottom"></div>
+  </section>
+
+  <!-- ============ 統計 ============ -->
+  <section class="view" id="view-stats" data-view="stats" hidden>
+    <header class="topbar">
+      <div class="seg" id="rangeModeSeg">
+        <button class="seg-btn is-on" data-mode="month">一個月</button>
+        <button class="seg-btn" data-mode="year">一年</button>
+        <button class="seg-btn" data-mode="custom">自訂</button>
+      </div>
+    </header>
+
+    <div class="period-nav" id="periodNav">
+      <button class="icon-btn" data-p="-1">‹</button>
+      <button class="chip-btn grow" id="periodLabel">--</button>
+      <button class="icon-btn" data-p="1">›</button>
+    </div>
+    <div class="custom-range" id="customRange" hidden>
+      <label class="meta-item grow"><span>從</span><input type="date" id="rangeFrom"></label>
+      <label class="meta-item grow"><span>到</span><input type="date" id="rangeTo"></label>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>損益</h3><span class="muted small" id="plDays"></span></div>
+      <div class="pl-big" id="plNet">--</div>
+      <div class="sum-row">
+        <div class="sum sum-in"><small>收入</small><b id="plIn">0</b></div>
+        <div class="sum sum-out"><small>支出</small><b id="plOut">0</b></div>
+        <div class="sum"><small>儲蓄率</small><b id="plRate">--</b></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>支出類別佔比</h3><span class="muted" id="pieTotal"></span></div>
+      <div class="donut-wrap" id="donut"></div>
+      <div id="pieLegend" class="legend"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>各類別金額</h3><span class="muted small">含收入</span></div>
+      <div id="rankList" class="rank-list"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>與上一期比較</h3><span class="muted small" id="cmpLabel"></span></div>
+      <div id="cmpBody"></div>
+    </div>
+    <div class="pad-bottom"></div>
+  </section>
+
+  <!-- ============ 設定 ============ -->
+  <section class="view" id="view-settings" data-view="settings" hidden>
+    <header class="topbar"><h2>設定</h2></header>
+
+    <div class="card">
+      <div class="card-head"><h3>基本</h3></div>
+      <label class="row"><span>每月預算</span>
+        <input type="number" id="setBudget" inputmode="decimal" placeholder="例如 20000"></label>
+      <label class="row"><span>幣別符號</span>
+        <input type="text" id="setCurrency" maxlength="4" placeholder="NT$"></label>
+      <label class="row"><span>每月起算日</span>
+        <input type="number" id="setStartDay" min="1" max="28" placeholder="1"></label>
+      <label class="row"><span>外觀</span>
+        <select id="setTheme">
+          <option value="auto">跟隨系統</option>
+          <option value="light">淺色</option>
+          <option value="dark">深色</option>
+        </select></label>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>雲端同步</h3><span class="muted" id="syncStatus">未設定</span></div>
+
+      <div class="sync-block">
+        <div class="sync-title">☁️ Google 雲端硬碟</div>
+        <p class="muted small">手機與電腦都能用。第一次使用需填入自己的 OAuth Client ID（作法見 README）。</p>
+        <label class="row"><span>Client ID</span>
+          <input type="text" id="setGClientId" placeholder="xxxx.apps.googleusercontent.com"></label>
+        <label class="row"><span>變更後自動同步</span>
+          <input type="checkbox" id="setAutoSync"></label>
+        <div class="btn-row">
+          <button class="btn" id="btnGConnect">連結帳號</button>
+          <button class="btn btn-primary" id="btnGSync">立即同步</button>
+          <button class="btn btn-ghost" id="btnGDisconnect">解除</button>
+        </div>
+        <div class="muted small" id="gInfo"></div>
+      </div>
+
+      <div class="sync-block">
+        <div class="sync-title">📁 本機資料夾（電腦版）</div>
+        <p class="muted small">選一個位於 OneDrive / Google Drive / Dropbox 同步資料夾內的目錄，記帳時自動寫檔，交給雲端軟體上傳。</p>
+        <div class="btn-row">
+          <button class="btn" id="btnPickFolder">選擇資料夾</button>
+          <button class="btn btn-primary" id="btnFolderSync">立即同步</button>
+          <button class="btn btn-ghost" id="btnFolderForget">解除</button>
+        </div>
+        <div class="muted small" id="folderInfo"></div>
+      </div>
+
+      <div class="sync-block">
+        <div class="sync-title">💾 檔案備份</div>
+        <div class="btn-row">
+          <button class="btn" id="btnExport">匯出 JSON</button>
+          <button class="btn" id="btnImport">匯入 JSON</button>
+          <button class="btn" id="btnExportCsv">匯出 CSV</button>
+        </div>
+        <input type="file" id="fileInput" accept="application/json,.json" hidden>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>類別管理</h3><span class="muted small">拖不動就用 ▲▼</span></div>
+      <div id="catManage" class="cat-manage"></div>
+      <button class="btn btn-block" id="btnAddCat">＋ 新增類別</button>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>資料</h3></div>
+      <div class="muted small" id="dataInfo"></div>
+      <div class="btn-row">
+        <button class="btn btn-danger" id="btnWipe">清除所有資料</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>關於</h3></div>
+      <p class="muted small">記帳本 v1.1 · 離線可用的個人記帳 PWA。<br>
+      Android Chrome 選單 →「加到主畫面」即可像 App 一樣使用。</p>
+      <div class="btn-row"><button class="btn" id="btnInstall" hidden>安裝到主畫面</button></div>
+    </div>
+    <div class="pad-bottom"></div>
+  </section>
+
+  <!-- ============ 底部導覽 ============ -->
+  <nav class="tabbar">
+    <button class="tab is-on" data-go="home"><span>🏠</span><small>總覽</small></button>
+    <button class="tab" data-go="list"><span>📒</span><small>明細</small></button>
+    <button class="fab" id="fabAdd" aria-label="記一筆">＋</button>
+    <button class="tab" data-go="stats"><span>📊</span><small>統計</small></button>
+    <button class="tab" data-go="settings"><span>⚙️</span><small>設定</small></button>
+  </nav>
+</div>
+
+<!-- ============ 記帳輸入 ============ -->
+<div class="sheet-mask" id="entryMask" hidden>
+  <div class="sheet" id="entrySheet" role="dialog" aria-modal="true">
+    <div class="sheet-head">
+      <button class="text-btn" id="entryCancel">取消</button>
+      <b id="entryTitle">記一筆</b>
+      <button class="text-btn strong" id="entrySave">儲存</button>
+    </div>
+
+    <div class="amount-view" id="amountView">
+      <span class="cur" id="entryCur">NT$</span>
+      <span class="amt" id="entryAmount">0</span>
+    </div>
+    <div class="calc-preview" id="calcPreview"></div>
+
+    <div class="cat-scroll"><div class="cat-grid" id="entryCats"></div></div>
+
+    <div class="entry-meta">
+      <label class="meta-item"><span>📅</span><input type="date" id="entryDate"></label>
+      <label class="meta-item grow"><span>📝</span><input type="text" id="entryNote" placeholder="備註（選填）" maxlength="60"></label>
+    </div>
+    <div class="note-chips" id="noteChips"></div>
+
+    <div class="keypad" id="keypad">
+      <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button><button data-k="del" class="k-fn">⌫</button>
+      <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button><button data-k="+" class="k-fn">＋</button>
+      <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button><button data-k="-" class="k-fn">－</button>
+      <button data-k="00">00</button><button data-k="0">0</button><button data-k=".">.</button><button data-k="ok" class="k-ok">✓</button>
+    </div>
+    <div id="entryDeleteWrap" hidden><button class="btn btn-danger btn-block" id="entryDelete">刪除這筆</button></div>
+  </div>
+</div>
+
+<!-- ============ 通用彈窗 ============ -->
+<div class="sheet-mask" id="modalMask" hidden>
+  <div class="modal" id="modalBox" role="dialog" aria-modal="true"></div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
