@@ -10,8 +10,15 @@ export function donut(el, items, opts = {}) {
   const size = 190, r = 66, sw = 30, cx = size / 2, cy = size / 2;
   const C = 2 * Math.PI * r;
   let acc = 0;
+  const icons = [];
   const arcs = items.map(it => {
     const frac = it.value / total;
+    // 圖示放在弧段正中央；太窄的弧段放不下就省略（圖例仍看得到）
+    if (it.icon && frac >= 0.05) {
+      const a = 2 * Math.PI * (acc + frac / 2) - Math.PI / 2;
+      icons.push(`<text x="${(cx + r * Math.cos(a)).toFixed(1)}" y="${(cy + r * Math.sin(a)).toFixed(1)}"
+        text-anchor="middle" dominant-baseline="central" font-size="15">${esc(it.icon)}</text>`);
+    }
     const seg = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${it.color}"
       stroke-width="${sw}" stroke-dasharray="${(C * frac - 2).toFixed(2)} ${(C - C * frac + 2).toFixed(2)}"
       stroke-dashoffset="${(-C * acc).toFixed(2)}" transform="rotate(-90 ${cx} ${cy})" stroke-linecap="butt"/>`;
@@ -21,6 +28,7 @@ export function donut(el, items, opts = {}) {
   el.innerHTML = `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
     <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="rgba(128,128,128,.12)" stroke-width="${sw}"/>
     ${arcs}
+    ${icons.join('')}
     <text x="${cx}" y="${cy - 4}" text-anchor="middle" font-size="12" fill="currentColor" opacity=".6">${esc(opts.label || '合計')}</text>
     <text x="${cx}" y="${cy + 18}" text-anchor="middle" font-size="19" font-weight="700" fill="currentColor">${nice(total)}</text>
   </svg>`;

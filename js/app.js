@@ -41,6 +41,12 @@ const R = {
 const currentSel = () => R.mode === 'month' ? { mode: 'month', key: R.key }
   : R.mode === 'year' ? { mode: 'year', year: R.year }
     : { mode: 'custom', from: R.from, to: R.to };
+/** 區間整段都在今天之後 —— 統計頁不允許切過去 */
+const isFutureSel = sel => store.rangeOf(sel).from > store.todayStr();
+const hasToday = sel => {
+  const { from, to } = store.rangeOf(sel), t = store.todayStr();
+  return from <= t && t <= to;
+};
 
 /* =========================================================
    小工具：Toast / 彈窗
@@ -472,38 +478,54 @@ $('rangeModeSeg').addEventListener('click', e => {
   R.mode = b.dataset.mode;
   if (R.mode === 'custom' && !R.from) {
     const r = store.monthRange(store.currentMonthKey());
-    R.from = r.from; R.to = r.to;
+    R.from = r.from; R.to = minDate(r.to, store.todayStr());
   }
   renderStats();
 });
 $('periodNav').addEventListener('click', e => {
   const b = e.target.closest('[data-p]');
-  if (!b) return;
+  if (!b || b.disabled) return;
   const next = store.shiftSel(currentSel(), +b.dataset.p);
+  if (isFutureSel(next)) return;
   if (next.mode === 'month') R.key = next.key; else R.year = next.year;
   renderStats();
 });
+/** 回到包含今天的區間；自訂區間保留天數，改成以今天結尾 */
+$('btnStatToday').onclick = () => {
+  const today = store.todayStr();
+  if (R.mode === 'month') R.key = store.currentMonthKey();
+  else if (R.mode === 'year') R.year = +store.currentMonthKey().slice(0, 4);
+  else {
+    const { from, to } = store.rangeOf(currentSel());
+    R.from = store.addDays(today, -store.daysBetween(from, to)); R.to = today;
+  }
+  renderStats();
+};
+const minDate = (a, b) => (a < b ? a : b);
 $('periodLabel').onclick = () => {
   if (R.mode === 'year') return;
   let year = +R.key.split('-')[0];
+  const future = k => isFutureSel({ mode: 'month', key: k });
   const draw = box => {
     box.innerHTML = `<div class="year-nav">
-        <button class="icon-btn" data-y="-1">‹</button><b>${year}</b><button class="icon-btn" data-y="1">›</button>
+        <button class="icon-btn" data-y="-1">‹</button><b>${year}</b>
+        <button class="icon-btn" data-y="1" ${future(`${year + 1}-01`) ? 'disabled' : ''}>›</button>
       </div>
       <div class="month-grid">${Array.from({ length: 12 }, (_, i) => {
         const k = `${year}-${String(i + 1).padStart(2, '0')}`;
-        return `<button data-k="${k}" class="${k === R.key ? 'is-on' : ''}">${i + 1} 月</button>`;
+        return `<button data-k="${k}" class="${k === R.key ? 'is-on' : ''}" ${future(k) ? 'disabled' : ''}>${i + 1} 月</button>`;
       }).join('')}</div>`;
-    box.querySelectorAll('[data-y]').forEach(b => b.onclick = () => { year += +b.dataset.y; draw(box); });
-    box.querySelectorAll('[data-k]').forEach(b => b.onclick = () => {
+    box.querySelectorAll('[data-y]:not([disabled])').forEach(b => b.onclick = () => { year += +b.dataset.y; draw(box); });
+    box.querySelectorAll('[data-k]:not([disabled])').forEach(b => b.onclick = () => {
       R.key = b.dataset.k; closeModal(); renderStats();
     });
   };
   openModal('', draw);
 };
 ['rangeFrom', 'rangeTo'].forEach(id => $(id).addEventListener('change', () => {
-  R.from = $('rangeFrom').value || R.from;
-  R.to = $('rangeTo').value || R.to;
+  const today = store.todayStr();
+  R.from = minDate($('rangeFrom').value || R.from, today);
+  R.to = minDate($('rangeTo').value || R.to, today);
   renderStats();
 }));
 
@@ -515,6 +537,8 @@ function renderStats() {
   $('periodNav').hidden = R.mode === 'custom';
   $('customRange').hidden = R.mode !== 'custom';
   $('periodLabel').textContent = store.selLabel(sel);
+  $('periodNav').querySelector('[data-p="1"]').disabled = isFutureSel(store.shiftSel(sel, 1));
+  $('btnStatToday').hidden = hasToday(sel);
   if (R.mode === 'custom') {
     $('rangeFrom').value = rg.from;
     $('rangeTo').value = rg.to;
@@ -538,9 +562,9 @@ function renderStats() {
   // 2) 支出類別佔比（不含收入）
   const exp = store.byCategory(recs, 'expense');
   $('pieTotal').textContent = t.out ? `${S.settings.currency} ${store.fmtMoney(t.out)}` : '';
-  charts.donut($('donut'), exp.map(i => ({ value: i.amount, color: i.c.color })), { label: '支出' });
+  charts.donut($('donut'), exp.map(i => ({ value: i.amount, color: i.c.color, icon: i.c.icon })), { label: '支出' });
   $('pieLegend').innerHTML = exp.map(i => `<div class="legend-item">
-      <i class="dot" style="background:${i.c.color}"></i>${esc(i.c.name)}
+      <i class="dot" style="background:${i.c.color}"></i><span class="lg-ico">${esc(i.c.icon)}</span>${esc(i.c.name)}
       <span class="lg-pct">${Math.round(i.amount / t.out * 100)}%</span></div>`).join('');
 
   // 3) 各類別金額（支出由大到小，收入排在最後）

@@ -152,6 +152,7 @@ button{background:none;border:0;cursor:pointer}
 .legend{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:6px}
 .legend-item{display:flex;align-items:center;gap:7px;font-size:12.5px}
 .dot{width:10px;height:10px;border-radius:3px;flex:none}
+.lg-ico{font-size:14px;line-height:1;margin-left:-2px}
 .legend-item .lg-pct{margin-left:auto;color:var(--muted);font-variant-numeric:tabular-nums}
 .rank-list{display:flex;flex-direction:column;gap:11px}
 .rank{display:flex;align-items:center;gap:10px}
@@ -270,6 +271,8 @@ button{background:none;border:0;cursor:pointer}
 /* ============ 統計區間 ============ */
 .period-nav{display:flex;align-items:center;gap:8px;margin:8px 0 2px}
 .chip-btn.grow{flex:1;text-align:center}
+.stat-today{margin-left:auto;color:var(--brand);padding:7px 12px;font-size:13px}
+.period-nav .icon-btn:disabled,.year-nav .icon-btn:disabled,.month-grid button:disabled{opacity:.35;cursor:default}
 .custom-range{display:flex;gap:8px;margin:8px 0 2px}
 .custom-range .meta-item span{color:var(--muted);font-size:13px}
 
