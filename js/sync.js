@@ -125,7 +125,8 @@ async function gUpload(fileId, data) {
 export async function gSync(interactive = true) {
   await gToken(interactive);
   const f = await gFindFile();
-  let merged = { added: 0, updated: 0 };
+  // 遠端還沒有檔案時，本機全部都是第一次上傳
+  let merged = { added: 0, updated: 0, uploaded: S.records.length };
   if (f) {
     const r = await gFetch(`https://www.googleapis.com/drive/v3/files/${f.id}?alt=media`);
     if (r.ok) {
@@ -168,7 +169,8 @@ export async function folderSync(request = true) {
   const handle = await getFolder();
   if (!handle) throw new Error('尚未選擇資料夾');
   if (!(await folderPerm(handle, request))) throw new Error('沒有資料夾存取權限');
-  let merged = { added: 0, updated: 0 };
+  // 遠端還沒有檔案時，本機全部都是第一次上傳
+  let merged = { added: 0, updated: 0, uploaded: S.records.length };
   try {
     const fh = await handle.getFileHandle(FILE_NAME);
     const text = await (await fh.getFile()).text();

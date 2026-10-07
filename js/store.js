@@ -265,6 +265,13 @@ export function snapshot() {
 export async function mergeSnapshot(remote) {
   if (!remote || !Array.isArray(remote.records)) throw new Error('檔案格式不符');
   const mine = new Map(S.records.map(r => [r.id, r]));
+  const theirs = new Map(remote.records.filter(r => r && r.id).map(r => [r.id, r]));
+  // 本機有、遠端沒有或較舊的筆數 —— 同步時會被上傳過去
+  let uploaded = 0;
+  for (const r of S.records) {
+    const t = theirs.get(r.id);
+    if (!t || (r.upd || 0) > (t.upd || 0)) uploaded++;
+  }
   const toPut = [];
   let added = 0, updated = 0;
   for (const r of remote.records) {
@@ -285,7 +292,7 @@ export async function mergeSnapshot(remote) {
     await db.setMeta('cats', S.cats);
   }
   emit('merge');
-  return { added, updated, total: S.records.length };
+  return { added, updated, uploaded, total: S.records.length };
 }
 
 /** 完整覆蓋匯入（使用者明確選擇時才用） */

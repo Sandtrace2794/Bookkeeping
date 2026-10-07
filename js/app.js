@@ -784,7 +784,7 @@ async function doGoogleSync(needConnect) {
     if (needConnect) await sync.gToken(true);
     toast('同步中…', 8000);
     const r = await sync.gSync(true);
-    toast(`同步完成 · 新增 ${r.added}、更新 ${r.updated}`, 2600);
+    toast(`同步完成 · 下載 ${r.added + r.updated} 筆、上傳 ${r.uploaded} 筆`, 2600);
     render();
   } catch (e) { toast(gErr(e), 4000); }
   renderHomeSync();
@@ -834,7 +834,7 @@ $('btnPickFolder').onclick = async () => {
   renderSyncInfo(); renderHomeSync();
 };
 $('btnFolderSync').onclick = async () => {
-  try { const r = await sync.folderSync(true); toast(`已同步 · 新增 ${r.added}、更新 ${r.updated}`); render(); }
+  try { const r = await sync.folderSync(true); toast(`已同步 · 讀入 ${r.added + r.updated} 筆、寫入 ${r.uploaded} 筆`); render(); }
   catch (e) { toast(e.message, 3500); }
   renderSyncInfo(); renderHomeSync();
 };
